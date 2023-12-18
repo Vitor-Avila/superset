@@ -45,6 +45,7 @@ import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { useTabId } from 'src/hooks/useTabId';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { checkIsApplyDisabled } from './utils';
 import { FiltersBarProps } from './types';
 import {
@@ -72,6 +73,7 @@ const EXCLUDED_URL_PARAMS: string[] = [
 
 const publishDataMask = debounce(
   async (
+    user,
     history,
     dashboardId,
     updateKey,
@@ -82,7 +84,7 @@ const publishDataMask = debounce(
     const { search } = location;
     const previousParams = new URLSearchParams(search);
     const newParams = new URLSearchParams();
-    let dataMaskKey: string | null;
+    let dataMaskKey: string | null = null;
     previousParams.forEach((value, key) => {
       if (!EXCLUDED_URL_PARAMS.includes(key)) {
         newParams.append(key, value);
@@ -102,7 +104,9 @@ const publishDataMask = debounce(
       ))
     ) {
       dataMaskKey = nativeFiltersCacheKey;
-    } else {
+    }
+    // embedded users can't persist filter combinations
+    else if (user?.userId) {
       dataMaskKey = await createFilterKey(dashboardId, dataMask, tabId);
     }
     if (dataMaskKey) {
@@ -147,6 +151,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
+  const user: UserWithPermissionsAndRoles = useSelector<
+    any,
+    UserWithPermissionsAndRoles
+  >(state => state.user);
 
   const [filtersInScope] = useSelectFiltersInScope(nativeFilterValues);
 
@@ -218,7 +226,14 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   }, [dataMaskAppliedText, setDataMaskSelected]);
 
   useEffect(() => {
-    publishDataMask(history, dashboardId, updateKey, dataMaskApplied, tabId);
+    publishDataMask(
+      user,
+      history,
+      dashboardId,
+      updateKey,
+      dataMaskApplied,
+      tabId,
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dashboardId, dataMaskAppliedText, history, updateKey, tabId]);
 
