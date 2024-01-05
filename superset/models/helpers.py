@@ -1729,7 +1729,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             select_exprs = remove_duplicates(select_exprs + orderby_exprs)
 
         qry = sa.select(select_exprs)
-
         tbl, cte = self.get_from_clause(template_processor)
 
         if groupby_all_columns:
@@ -1974,7 +1973,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 and db_engine_spec.allows_hidden_cc_in_orderby
                 and col.name in [select_col.name for select_col in select_exprs]
             ):
-                col = literal_column(col.name)
+                col = literal_column(f"`{col.name}`")
             direction = sa.asc if ascending else sa.desc
             qry = qry.order_by(direction(col))
 
